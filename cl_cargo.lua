@@ -82,7 +82,7 @@ local function nearZone(point)
     if point.isClosest and point.currentDistance <= 4 then
         if not showText then
             showText = true
-            lib.showTextUI('**E** - Deliver Cargo', {position = "left-center"})
+            lib.showTextUI('**E** - Deliver Cargo', {position = "right-center"})
         end
         if isHired and cache.vehicle and IsEntityAttachedToEntity(cache.vehicle, CRATE_OBJECT) then
             if IsControlJustPressed(0, 38) and not droppingOff then
@@ -148,7 +148,7 @@ end
 local function spawnPed()
     if DoesEntityExist(cargoPed) then return end
 
-    lib.requestModel(joaat(Config.Ped))
+    lib.requestModel(joaat(Config.Ped), 5000)
     cargoPed = CreatePed(0, Config.Ped, Config.PedCoords, false, false)
     SetEntityAsMissionEntity(cargoPed, true, true)
     SetPedFleeAttributes(cargoPed, 0, 0)
@@ -190,7 +190,7 @@ local function spawnPed()
             rotation = GetEntityHeading(cargoPed),
             debug = false,
             onEnter = function()
-                lib.showTextUI('**E** - Interact', {position = "left-center"})
+                lib.showTextUI('**E** - Interact', {position = "right-center"})
             end,
             onExit = function()
                 lib.hideTextUI()
@@ -227,6 +227,13 @@ RegisterNetEvent('randol_cargo:client:startRoute', function(data, vehNet, crateN
         exports[Config.Fuel.script]:SetFuel(veh, 100.0)
     else
         Entity(veh).state.fuel = 100
+    end
+
+    if NetworkGetEntityOwner(CRATE_OBJECT) ~= cache.playerId then
+        while NetworkGetEntityOwner(CRATE_OBJECT) ~= cache.playerId do -- I'm not proud of it either, trust me.
+            NetworkRequestControlOfEntity(CRATE_OBJECT)
+            Wait(10)
+        end
     end
 
     local x, y, z = routeData.attach.x, routeData.attach.y, routeData.attach.z
