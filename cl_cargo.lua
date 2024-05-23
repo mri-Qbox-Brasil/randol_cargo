@@ -11,7 +11,7 @@ SetBlipScale(CARGO_BLIP, 0.8)
 SetBlipAsShortRange(CARGO_BLIP, true)
 SetBlipColour(CARGO_BLIP, 52)
 BeginTextCommandSetBlipName("STRING")
-AddTextComponentSubstringPlayerName("Cargo Delivery")
+AddTextComponentSubstringPlayerName("Transportador")
 EndTextCommandSetBlipName(CARGO_BLIP)
 
 local function showCargoScaleform(bool)
@@ -49,10 +49,10 @@ end
 local function interactContext()
     lib.registerContext({
         id = 'interact_cargo',
-        title = "Cargo Deliveries",
+        title = "Transporte de carga",
         options = {
             {
-                title = "Start Cargo Delivery",
+                title = "Inicie a entrega de carga",
                 icon = "fa-solid fa-truck-moving",
                 disabled = isHired,
                 onSelect = function()
@@ -64,7 +64,7 @@ local function interactContext()
                 end,
             },
             {
-                title = "Finish Delivery",
+                title = "Finalizar a entrega",
                 icon = "fa-solid fa-clipboard-check",
                 disabled = not isHired,
                 onSelect = function()
@@ -82,7 +82,7 @@ local function nearZone(point)
     if point.isClosest and point.currentDistance <= 4 then
         if not showText then
             showText = true
-            lib.showTextUI('**E** - Deliver Cargo', {position = "right-center"})
+            lib.showTextUI('**E** - Entregar carga', {position = "right-center"})
         end
         if isHired and cache.vehicle and IsEntityAttachedToEntity(cache.vehicle, CRATE_OBJECT) then
             if IsControlJustPressed(0, 38) and not droppingOff then
@@ -91,7 +91,7 @@ local function nearZone(point)
                 if lib.progressCircle({
                     duration = 5000,
                     position = 'bottom',
-                    label = "Dropping cargo..",
+                    label = "Descarregando a entrega...",
                     useWhileDead = true,
                     canCancel = false,
                     disable = { move = true, car = true, mouse = false, combat = true, },
@@ -126,7 +126,7 @@ local function setRoute(route)
     SetBlipRoute(jobBlip, true)
     SetBlipRouteColour(jobBlip, 3)
     BeginTextCommandSetBlipName("STRING")
-    AddTextComponentSubstringPlayerName("Delivery Point")
+    AddTextComponentSubstringPlayerName("Ponto de entrega")
     EndTextCommandSetBlipName(jobBlip)
 
     DropOffZone = lib.points.new({ coords = vec3(route.x, route.y, route.z), distance = 30, nearby = nearZone, })
@@ -148,59 +148,125 @@ end
 local function spawnPed()
     if DoesEntityExist(cargoPed) then return end
 
-    lib.requestModel(joaat(Config.Ped), 5000)
-    cargoPed = CreatePed(0, Config.Ped, Config.PedCoords, false, false)
-    SetEntityAsMissionEntity(cargoPed, true, true)
-    SetPedFleeAttributes(cargoPed, 0, 0)
-    SetBlockingOfNonTemporaryEvents(cargoPed, true)
-    SetEntityInvincible(cargoPed, true)
-    FreezeEntityPosition(cargoPed, true)
-    SetModelAsNoLongerNeeded(joaat(Config.Ped))
-
-    if Config.Target then
-        exports['qb-target']:AddTargetEntity(cargoPed, { 
-            options = {
-                { 
-                    icon = "fa-solid fa-truck-moving",
-                    label = "Start Cargo Delivery",
-                    canInteract = function() return not isHired end,
-                    action = function()
-                        if IsAnyVehicleNearPoint(Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z, 5.0) then 
-                            DoNotification('A vehicle is blocking the spawn.', 'error') 
-                            return 
-                        end
-                        local success = lib.callback.await('randol_cargo:server:beginRoute', false)
-                    end,
-                },
-                { 
-                    icon = "fa-solid fa-clipboard-check",
-                    label = "Finish Delivery",
-                    canInteract = function() return isHired end,
-                    action = function()
-                        finishRoute()
-                    end,
-                },
-            }, 
-            distance = 1.5, 
-        })
-    else
-        pedInteract = lib.zones.box({
-            coords = vec3(Config.PedCoords.x, Config.PedCoords.y, Config.PedCoords.z+0.5), 
-            size = vector3(2, 2, 2),
-            rotation = GetEntityHeading(cargoPed),
-            debug = false,
-            onEnter = function()
-                lib.showTextUI('**E** - Interact', {position = "right-center"})
-            end,
-            onExit = function()
-                lib.hideTextUI()
-            end,
-            inside = function()
-                if IsControlJustPressed(0, 38) then
-                    interactContext()
+    if Config.talkNPC then
+    cargoPed = exports['rep-talkNPC']:CreateNPC({
+        npc = Config.Ped,
+        coords = vector3(Config.PedCoords.x, Config.PedCoords.y, Config.PedCoords.z),
+        heading = Config.PedCoords.w,
+        name = 'Seu Zé',
+        tag = 'TRANSPORTADOR',
+        animScenario = 'WORLD_HUMAN_CLIPBOARD',
+        position = "Empurra muita carga",
+        color = "green",
+        startMSG = 'Ei, você aí, tá precisando de emprego?'
+    }, {
+        [1] = {
+            label = "Como funciona esse trabalho?",
+            shouldClose = false,
+            action = function()
+                exports['rep-talkNPC']:changeDialog("🤔 Hm... **Você não me é estranho**.  \nDe toda forma, prazer, sou o 😃**José Henrique**!  \nMas pode me chamar só de Seu Zé.  \nVocê nunca trabalhou de 🚚📦 entregador por aqui?   \n**É fácil demais, só dirigir, entregar e voltar pra receber o pagamento**. 💸  \nAinda tá aqui? Vai trabalhar! 💼👊", 
+                    {
+                        [1] = {
+                            label = "Entendido. Vamos trabalhar!",
+                            action = function()
+                                if not isHired then
+                                    if IsAnyVehicleNearPoint(Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z, 5.0) then 
+                                        DoNotification('Um veículo está ocupando a vaga. Por favor, espere.', 'error') 
+                                        return 
+                                    end
+                                    local success = lib.callback.await('randol_cargo:server:beginRoute', false)
+                                    TriggerEvent('rep-talkNPC:client:close')
+                                else
+                                    exports['rep-talkNPC']:updateMessage("Você já está trabalhando como transportador.")
+                                end
+                            end
+                        },
+                        [2] = {
+                            label = "Ah sim... Talvez mais tarde.",
+                            shouldClose = true,
+                            action = function()
+                            end
+                        }
+                    })
+            end
+        },
+        [2] = {
+            label = "Trabalhar/Finalizar",
+            shouldClose = true,
+            action = function()
+                if not isHired then
+                    if IsAnyVehicleNearPoint(Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z, 5.0) then 
+                        DoNotification('Um veículo está ocupando a vaga. Por favor, espere.', 'error') 
+                        return 
+                    end
+                    local success = lib.callback.await('randol_cargo:server:beginRoute', false)
+                else
+                    finishRoute()
                 end
-            end,
-        })
+            end
+        },
+        [3] = {
+            label = "Talvez outra hora...",
+            shouldClose = true,
+            action = function()
+            end
+        }
+    })
+    else
+        lib.requestModel(joaat(Config.Ped), 5000)
+        cargoPed = CreatePed(0, Config.Ped, Config.PedCoords, false, false)
+        SetEntityAsMissionEntity(cargoPed, true, true)
+        SetPedFleeAttributes(cargoPed, 0, 0)
+        SetBlockingOfNonTemporaryEvents(cargoPed, true)
+        SetEntityInvincible(cargoPed, true)
+        FreezeEntityPosition(cargoPed, true)
+        SetModelAsNoLongerNeeded(joaat(Config.Ped))
+
+        if Config.Target then
+            exports['qb-target']:AddTargetEntity(cargoPed, { 
+                options = {
+                    { 
+                        icon = "fa-solid fa-truck-moving",
+                        label = "Inicie a entrega de carga",
+                        canInteract = function() return not isHired end,
+                        action = function()
+                            if IsAnyVehicleNearPoint(Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z, 5.0) then 
+                                DoNotification('A vehicle is blocking the spawn.', 'error') 
+                                return 
+                            end
+                            local success = lib.callback.await('randol_cargo:server:beginRoute', false)
+                        end,
+                    },
+                    { 
+                        icon = "fa-solid fa-clipboard-check",
+                        label = "Finalizar a entrega",
+                        canInteract = function() return isHired end,
+                        action = function()
+                            finishRoute()
+                        end,
+                    },
+                }, 
+                distance = 1.5, 
+            })
+        else
+            pedInteract = lib.zones.box({
+                coords = vec3(Config.PedCoords.x, Config.PedCoords.y, Config.PedCoords.z+0.5), 
+                size = vector3(2, 2, 2),
+                rotation = GetEntityHeading(cargoPed),
+                debug = false,
+                onEnter = function()
+                    lib.showTextUI('**E** - Interagir', {position = "right-center"})
+                end,
+                onExit = function()
+                    lib.hideTextUI()
+                end,
+                inside = function()
+                    if IsControlJustPressed(0, 38) then
+                        interactContext()
+                    end
+                end,
+            })
+        end
     end
 end
 

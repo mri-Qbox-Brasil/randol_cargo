@@ -8,9 +8,11 @@ local function setCargoVehicle(source, truck, prop)
 
     while not DoesEntityExist(cargoVeh) do Wait(0) end 
 
-    while GetVehiclePedIsIn(ped, false) ~= cargoVeh do
-        TaskWarpPedIntoVehicle(ped, cargoVeh, -1)
-        Wait(0)
+    if Config.SpawnInVeh then
+        while GetVehiclePedIsIn(ped, false) ~= cargoVeh do
+            TaskWarpPedIntoVehicle(ped, cargoVeh, -1)
+            Wait(0)
+        end
     end
 
     local crate = CreateObject(joaat(prop), Config.VehicleSpawn.x, Config.VehicleSpawn.y, Config.VehicleSpawn.z-5.0, true, true, false)
@@ -71,10 +73,11 @@ lib.callback.register('randol_cargo:server:finishRoute', function(source)
 
     if details.complete then
         local payment = details.payout
-        DoNotification(src, ('You were paid $%s'):format(payment), 'success')
+        exports['cw-rep']:updateSkill(source, 'cargo', 5)
+        DoNotification(src, ('Você foi pago R$ %s'):format(payment), 'success')
         AddMoney(Player, 'cash', payment, 'cargo-job')
     else
-        DoNotification(src, 'You ended your run without completing the route so you weren\'t paid.', 'error')
+        DoNotification(src, 'Você terminou sua corrida sem completar a rota e não recebeu nada.', 'error')
         local entity = storedRoute[src].crateHandle
 
         if DoesEntityExist(entity) then DeleteEntity(entity) end

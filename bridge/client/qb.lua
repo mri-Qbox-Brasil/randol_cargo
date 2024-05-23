@@ -12,7 +12,8 @@ end)
 
 function handleVehicleKeys(veh)
     local plate = GetVehicleNumberPlateText(veh)
-    TriggerServerEvent('qb-vehiclekeys:server:AcquireVehicleKeys', plate)
+    -- TriggerServerEvent('qb-vehiclekeys:server:AcquireVehicleKeys', plate)
+    TriggerEvent("vehiclekeys:client:SetOwner", plate)
 end
 
 function hasPlyLoaded()
