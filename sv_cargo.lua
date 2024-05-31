@@ -73,7 +73,7 @@ lib.callback.register('randol_cargo:server:finishRoute', function(source)
 
     if details.complete then
         local payment = details.payout
-        exports['cw-rep']:updateSkill(source, 'cargo', 5)
+        exports["cw-rep"]:updateSkill(source, 'cargo', 5)
         DoNotification(src, ('Você foi pago R$ %s'):format(payment), 'success')
         AddMoney(Player, 'cash', payment, 'cargo-job')
     else
